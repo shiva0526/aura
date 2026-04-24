@@ -1,0 +1,17 @@
+venv/
+node_modules/
+.next/
+__pycache__/
+.env
+.DS_Store
+
+# Exclude dynamic AURA reports
+sos_alert.json
+oracle_report.json
+rescue_plan.json
+final_plan.json
+
+# System files
+map.html
+snapshots/
+

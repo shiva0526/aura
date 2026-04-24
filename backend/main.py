@@ -14,33 +14,36 @@ def print_final_plan(plan):
     print("\n" + "=" * 50)
     print("         ✅ RESCUE PLAN CONFIRMED")
     print("=" * 50)
-    print(f"Severity: {plan.get('severity', 'N/A')}")
-    print(f"Teams: {plan.get('teams', 'N/A')}")
-    print(f"Route: {plan.get('route', 'N/A')}")
-    print(f"Hospital: {plan.get('hospital', 'N/A')}")
-    print(f"Status: {plan.get('status', 'N/A')}")
-    print(f"Attempts: {plan.get('attempts', 'N/A')}")
+    print(f"Severity: {plan.get('severity', plan.get('severity_level', 'UNKNOWN'))}")
+    print(f"Teams:    {plan.get('teams', 'None')}")
+    print(f"Route:    {plan.get('route', 'None')}")
+    print(f"Hospital: {plan.get('hospital', 'None')}")
+    print(f"Status:   {plan.get('status', 'None')}")
+    print(f"Attempts: {plan.get('attempts', 0)}")
     print("=" * 50)
 
 def cleanup():
-    for f in ["sos_alert.json", "oracle_report.json", "rescue_plan.json"]:
-        if os.path.exists(f):
-            os.remove(f)
+    for filename in ["sos_alert.json", "oracle_report.json", "rescue_plan.json"]:
+        if os.path.exists(filename):
+            os.remove(filename)
 
 def run_pipeline():
     print("\n[AURA] 🚨 SOS DETECTED — Activating Pipeline\n")
 
     print("[AURA] Running ORACLE...")
-    run_oracle()
-    
-    print("[AURA] Running COMPASS...")
-    run_compass()
-    
-    print("[AURA] Running SHIELD...")
-    final_plan = run_shield()
+    oracle = run_oracle()
+    time.sleep(1)
 
-    if final_plan:
-        print_final_plan(final_plan)
+    print("[AURA] Running COMPASS...")
+    plan = run_compass()
+    time.sleep(1)
+
+    print("[AURA] Running SHIELD...")
+    final = run_shield()
+    time.sleep(1)
+
+    if final:
+        print_final_plan(final)
         
     cleanup()
 

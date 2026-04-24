@@ -1,6 +1,8 @@
 opencv-python
-mediapipe
+mediapipe==0.10.14
 requests
 pandas
 scikit-learn
 numpy
+fastapi
+uvicorn
