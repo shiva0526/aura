@@ -1,62 +1,47 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MapPin, Flag, Hospital, Tent, Navigation, AlertTriangle, User, ChevronRight, Map as MapIcon, Crosshair, CloudRain, Mountain, Battery, Radio, Moon, Sun, Activity, ChevronDown } from 'lucide-react'
+import { getOfficers, getFinal } from '../utils/api'
 
 export default function GroundDashboard() {
   const [darkMode, setDarkMode] = useState(true)
   const [selectedTeamId, setSelectedTeamId] = useState("GO-01")
   const [arrived, setArrived] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [officers, setOfficers] = useState([])
+  const [globalMission, setGlobalMission] = useState(null)
 
-  const teams = {
-    "GO-01": {
-      id: "GO-01",
-      name: "Team Alpha",
-      status: "Active Patrol",
-      battery: "92%",
-      signal: "CH-04",
-      mission: null,
-      lat: 12.9750,
-      lon: 77.5900,
-      weather: "Thunderstorm, 24°C"
-    },
-    "GO-02": {
-      id: "GO-02",
-      name: "Team Bravo",
-      status: "En Route to Mission",
-      battery: "78%",
-      signal: "CH-02",
-      mission: {
-        id: "Flood Rescue (RESCUE-001)",
-        type: "Flood Rescue",
-        severity: "HIGH",
-        route: "Route B (Main)",
-        eta: "10 mins",
-        distance: "4.2 km",
-        hospital: "City Central",
-        targetLat: 12.9610,
-        targetLon: 77.5820,
-        teams: 2
-      },
-      lat: 12.9600,
-      lon: 77.5800,
-      weather: "Heavy Rain, 18°C"
-    },
-    "GO-03": {
-      id: "GO-03",
-      name: "Team Charlie",
-      status: "Resting at Base",
-      battery: "100%",
-      signal: "CH-05",
-      mission: null,
-      lat: 12.9800,
-      lon: 77.6100,
-      weather: "Clear, 22°C"
-    }
-  }
+  // Real-time Polling
+  useEffect(() => {
+    const poll = async () => {
+      const offData = await getOfficers();
+      if (offData) setOfficers(offData);
 
-  const team = teams[selectedTeamId]
-  const mission = team.mission
+      const finalData = await getFinal();
+      if (finalData && finalData.mission_id) {
+        setGlobalMission(finalData);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Use the polled list to find the selected team
+  const team = officers.find(o => o.id === selectedTeamId) || (officers.length > 0 ? officers[0] : { id: '...', name: 'Loading...', status: 'off', lat: 0, lon: 0, battery: '...', signal: '...' });
+
+  const mission = (team && team.status === 'busy' && globalMission) ? {
+    id: globalMission.mission_id,
+    type: globalMission.disaster_type || "Emergency Response",
+    severity: globalMission.severity || "HIGH",
+    route: globalMission.route || "Sector A-1",
+    eta: "10 mins",
+    distance: "4.2 km",
+    hospital: globalMission.hospital || "City Central",
+    targetLat: globalMission.lat,
+    targetLon: globalMission.lon
+  } : null;
 
   const toggleTheme = () => setDarkMode(!darkMode)
 
@@ -65,7 +50,7 @@ export default function GroundDashboard() {
     : "bg-gradient-to-br from-blue-50 via-white to-blue-50 text-[#18181B]"
 
   const cardClasses = darkMode
-    ? "bg-slate-900/50 border-slate-800 backdrop-blur-xl shadow-2xl shadow-black/20"
+    ? "bg-slate-900/50 border-slate-800 backdrop-blur-xl shadow-2xl shadow-black/10"
     : "bg-white/80 backdrop-blur-md border-white shadow-xl shadow-blue-900/5"
 
   const handleArrive = () => {
@@ -75,35 +60,32 @@ export default function GroundDashboard() {
     }, 800)
   }
 
-  const submitFeedback = () => {
-    setShowFeedback(false)
-  }
-
   return (
     <div className={`min-h-screen flex flex-col font-inter transition-colors duration-500 overflow-hidden relative ${themeClasses}`}>
       <Head>
-        <title>Ground Dashboard | AURA</title>
+        <title>COMMAND INTERFACE | AURA</title>
       </Head>
 
       {/* Header */}
-      <header className={`border-b px-6 py-4 flex justify-between items-center z-20 transition-colors duration-500 ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-white/50 shadow-sm'}`}>
+      <header className={`border-b px-6 py-4 flex justify-between items-center z-20 transition-colors duration-500 ${darkMode ? 'bg-slate-900/80 border-slate-800 shadow-2xl shadow-black/50' : 'bg-white/80 border-white shadow-sm'}`}>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-xl text-white shadow-md shadow-blue-500/20">
-              <User size={20} />
+              <Crosshair size={20} />
             </div>
             <div>
-              <h1 className={`font-bold leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Unit: {team.id}</h1>
+              <h1 className={`font-bold tracking-widest uppercase text-xs ${darkMode ? 'text-blue-500' : 'text-blue-600'}`}>Field Operator HUD</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide">{team.status}</span>
+                <span className={`text-lg font-black uppercase ${darkMode ? 'text-white' : 'text-gray-900'}`}>{team.name}</span>
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mx-2"></span>
+                <span className="text-[10px] font-bold text-green-500 uppercase tracking-[0.2em]">{team.status}</span>
               </div>
             </div>
           </div>
 
-          <div className={`w-px h-8 ${darkMode ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
+          <div className={`w-px h-10 ${darkMode ? 'bg-slate-800' : 'bg-gray-100'}`}></div>
 
-          {/* Team Selector */}
+          {/* Team Switcher */}
           <div className="relative group">
             <select
               value={selectedTeamId}
@@ -112,115 +94,91 @@ export default function GroundDashboard() {
                 setArrived(false)
                 setShowFeedback(false)
               }}
-              className={`appearance-none font-bold tracking-tight px-4 py-2 pr-10 rounded-xl outline-none transition-all cursor-pointer text-sm border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:border-blue-500' : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
+              className={`appearance-none font-black tracking-widest px-5 py-2 pr-12 rounded-xl border transition-all cursor-pointer text-xs uppercase ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-blue-500 focus:border-blue-500' : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
                 }`}
             >
-              <option value="GO-01">TEAM ALPHA</option>
-              <option value="GO-02">TEAM BRAVO</option>
-              <option value="GO-03">TEAM CHARLIE</option>
+              {officers.map(off => (
+                <option key={off.id} value={off.id}>{off.name.toUpperCase()} [{off.id.split('-')[1]}]</option>
+              ))}
             </select>
-            <ChevronDown size={16} className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${darkMode ? 'text-slate-500' : 'text-gray-400'}`} />
+            <ChevronDown size={14} className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${darkMode ? 'text-slate-600' : 'text-gray-400'}`} />
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className={`flex items-center gap-4 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
-            <span className="flex items-center gap-1.5"><Battery size={14} className={team.battery === '100%' ? 'text-green-500' : 'text-orange-500'} /> {team.battery}</span>
-            <span className={`w-px h-3 ${darkMode ? 'bg-slate-700' : 'bg-gray-300'}`}></span>
-            <span className="flex items-center gap-1.5"><Radio size={14} className="text-blue-500" /> {team.signal}</span>
+          <div className={`flex items-center gap-5 text-[10px] font-black px-4 py-2.5 rounded-xl border tracking-widest uppercase transition-colors ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+            <span className="flex items-center gap-2"><Battery size={16} className={team.battery === '100%' ? 'text-green-500' : 'text-orange-500'} /> Power: {team.battery}</span>
+            <span className={`w-px h-3 ${darkMode ? 'bg-slate-800' : 'bg-gray-200'}`}></span>
+            <span className="flex items-center gap-2 text-cyan-500"><Radio size={16} /> Link: {team.signal}</span>
           </div>
 
-          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className={`p-2 rounded-xl transition-all duration-300 border ${darkMode ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' : 'text-blue-600 bg-blue-600/10 border-blue-600/20'}`}
+            className={`p-2.5 rounded-xl transition-all duration-300 border ${darkMode ? 'text-yellow-400 bg-yellow-400/5 border-yellow-400/20 hover:bg-yellow-400/10' : 'text-blue-600 bg-blue-600/5 border-blue-600/20'}`}
           >
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-
-          {mission && (
-            <div className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${mission.severity === 'HIGH' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-orange-500/10 text-orange-500 border-orange-500/20'
-              }`}>
-              Severity: {mission.severity}
-            </div>
-          )}
         </div>
       </header>
 
-      <div className="p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1400px] mx-auto w-full h-[calc(100vh-74px)]">
+      <div className="p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1500px] mx-auto w-full h-[calc(100vh-76px)]">
 
-        {/* Left Panel */}
-        <div className={`lg:col-span-4 rounded-2xl border flex flex-col relative overflow-hidden h-full transition-all duration-500 ${cardClasses}`}>
-          <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${mission ? (mission.severity === 'HIGH' ? 'from-red-500 to-orange-500' : 'from-orange-500 to-yellow-500')
-              : 'from-blue-500 to-blue-400'
+        {/* Tactical Intel Panel */}
+        <div className={`lg:col-span-4 rounded-2xl border flex flex-col relative overflow-hidden h-full transition-all duration-500 shadow-2xl ${cardClasses}`}>
+          <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${mission ? (mission.severity === 'HIGH' ? 'from-red-600 to-red-400' : 'from-orange-500 to-yellow-500')
+            : 'from-blue-600 to-cyan-400'
             }`}></div>
 
-          <div className="p-6 flex-1 flex flex-col overflow-y-auto">
-            <div className="flex justify-between items-start mb-6 mt-2">
+          <div className="p-8 flex-1 flex flex-col overflow-y-auto">
+            <div className="flex justify-between items-start mb-10">
               <div>
-                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider mb-2 inline-block border ${mission ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20'}`}>
-                  {mission ? 'Active Assignment' : 'Observation Mode'}
+                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest mb-3 inline-block border ${mission ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                  {mission ? 'Operation Priority: High' : 'Patrol Protocol Active'}
                 </span>
-                <h2 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {mission ? mission.id : 'Standby'}
+                <h2 className={`text-4xl font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {mission ? 'MISSION REQ' : 'UNIT STANDBY'}
                 </h2>
-                <p className={`text-sm mt-1 font-medium flex items-center gap-1.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
-                  {mission ? <><AlertTriangle size={14} className="text-yellow-500" /> Route: {mission.route}</> : <><Activity size={14} className="text-blue-500" /> Scanning Sector G-4</>}
+                <p className={`text-xs mt-3 font-bold tracking-widest uppercase flex items-center gap-2 ${darkMode ? 'text-slate-500' : 'text-gray-500'}`}>
+                  {mission ? <><AlertTriangle size={14} className="text-red-500 animate-pulse" /> {mission.id}</> : <><Activity size={14} className="text-blue-500" /> All Systems Nominal</>}
                 </p>
               </div>
-              {mission && (
-                <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
-                  <AlertTriangle size={24} />
-                </div>
-              )}
             </div>
 
             {mission ? (
-              <div className="space-y-4 mb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className={`rounded-xl p-4 border transition-colors ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Hospital</span>
-                    <p className="text-sm font-semibold">{mission.hospital}</p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`rounded-xl p-5 border transition-colors ${darkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-gray-50 border-gray-100'}`}>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Hazard Class</span>
+                    <p className="text-sm font-black uppercase text-red-500">{mission.type}</p>
                   </div>
-                  <div className={`rounded-xl p-4 border transition-colors ${darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Reports</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20"><Crosshair size={16} /></div>
-                      <div>
-                        <p className="text-xs font-bold leading-tight">Drone AQ-77</p>
-                        <p className="text-[9px] opacity-50 uppercase font-bold tracking-widest">Live Link</p>
-                      </div>
-                    </div>
+                  <div className={`rounded-xl p-5 border transition-colors ${darkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-gray-50 border-gray-100'}`}>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-3">Raster Route</span>
+                    <p className="text-sm font-black uppercase text-blue-500">{mission.route}</p>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider block mb-3 px-1 ${darkMode ? 'text-slate-500' : 'text-gray-400'}`}>Environmental Scan</span>
-                  <div className={`rounded-xl border divide-y transition-colors ${darkMode ? 'bg-slate-800/20 border-slate-700 divide-slate-800' : 'bg-white border-gray-200 divide-gray-100 shadow-sm'}`}>
-                    <div className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center"><CloudRain size={16} /></div>
-                        <span className="text-sm font-semibold opacity-80">Weather</span>
-                      </div>
-                      <span className="text-sm font-bold">{team.weather}</span>
-                    </div>
-                    <div className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center"><Mountain size={16} /></div>
-                        <span className="text-sm font-semibold opacity-80">Wildfire</span>
-                      </div>
-                      <span className="text-sm font-bold text-green-500">Low Risk</span>
-                    </div>
+                <div className={`rounded-2xl border p-5 space-y-4 tracking-widest font-bold uppercase transition-colors ${darkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-white border-gray-200'}`}>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">Destination</span>
+                    <span className="text-slate-200">{mission.hospital}</span>
+                  </div>
+                  <div className="h-px bg-slate-800/50 w-full"></div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">Distance</span>
+                    <span className="text-slate-200">{mission.distance}</span>
+                  </div>
+                  <div className="h-px bg-slate-800/50 w-full"></div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">Weather Block</span>
+                    <span className="text-slate-200">{team.weather}</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className={`flex-1 flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed mb-6 ${darkMode ? 'border-slate-800 text-slate-500' : 'border-gray-200 text-gray-400'}`}>
-                <div className="w-16 h-16 bg-blue-500/5 rounded-full flex items-center justify-center mb-4 transition-transform hover:rotate-12">
-                  <Navigation size={32} className="opacity-20" />
-                </div>
-                <p className="font-bold tracking-tight">Units on standby</p>
-                <p className="text-xs max-w-[200px] mt-2 opacity-60">Ready to respond to regional SOS signals from command center.</p>
+              <div className={`flex-1 flex flex-col items-center justify-center text-center p-10 rounded-2xl border-2 border-dashed transition-colors ${darkMode ? 'border-slate-800/50 bg-slate-950/20 text-slate-600' : 'border-gray-100 text-gray-400'}`}>
+                <Activity size={48} className="opacity-10 mb-6" />
+                <p className="font-black uppercase tracking-[0.3em] text-xs">Awaiting Raster Uplink</p>
+                <p className="text-[10px] uppercase font-bold mt-4 opacity-40 leading-relaxed max-w-[180px]">Maintain regional patrol until headquarters transmits rescue coordinates.</p>
               </div>
             )}
 
@@ -229,110 +187,69 @@ export default function GroundDashboard() {
                 !arrived ? (
                   <button
                     onClick={handleArrive}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all transform active:scale-[0.98] shadow-lg shadow-blue-500/30 text-lg"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.2em] text-sm py-5 rounded-xl flex justify-center items-center gap-3 transition-all transform active:scale-[0.98] shadow-2xl shadow-blue-500/20 border-b-4 border-blue-800"
                   >
-                    <Flag size={20} /> Arrived at Scene
+                    <Navigation size={20} /> Initiate Route Uplink
                   </button>
                 ) : (
-                  <div className="space-y-4 animate-fade-in bg-blue-500/5 p-4 rounded-xl border border-blue-500/10">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="h-px bg-blue-500/20 flex-1"></div>
-                      <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Resolution Steps</span>
-                      <div className="h-px bg-blue-500/20 flex-1"></div>
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="h-px bg-slate-800 flex-1"></div>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Protocol Override</span>
+                      <div className="h-px bg-slate-800 flex-1"></div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button onClick={submitFeedback} className={`flex flex-col items-center justify-center py-5 gap-3 border-2 rounded-xl transition-all ${darkMode ? 'bg-slate-800/50 border-slate-700 hover:border-red-400' : 'bg-white border-gray-100 hover:border-red-300'}`}>
-                        <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><Hospital size={20} /></div>
-                        <span className="text-xs font-bold tracking-tight text-slate-400">Hospital</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-red-500 hover:text-red-500 text-slate-500' : 'bg-white border-gray-100 hover:border-red-500 text-gray-500'}`}>
+                        <Hospital size={24} /> Route Hospital
                       </button>
-                      <button onClick={submitFeedback} className={`flex flex-col items-center justify-center py-5 gap-3 border-2 rounded-xl transition-all ${darkMode ? 'bg-slate-800/50 border-slate-700 hover:border-green-400' : 'bg-white border-gray-100 hover:border-green-300'}`}>
-                        <div className="w-10 h-10 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center"><Tent size={20} /></div>
-                        <span className="text-xs font-bold tracking-tight text-slate-400">Base Camp</span>
+                      <button className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-green-500 hover:text-green-500 text-slate-500' : 'bg-white border-gray-100 hover:border-green-500 text-gray-500'}`}>
+                        <Tent size={24} /> Route Base
                       </button>
                     </div>
                   </div>
                 )
               ) : (
-                <button className={`w-full py-4 rounded-xl font-bold tracking-widest text-sm border border-dashed transition-colors ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-600' : 'bg-gray-50 border-gray-200 text-gray-400'} cursor-not-allowed`}>
-                  NO MISSION ACTIVE
-                </button>
+                <div className={`w-full py-5 rounded-xl font-black uppercase tracking-[0.3em] text-[10px] border-2 border-dashed transition-colors flex justify-center items-center gap-2 ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-800' : 'bg-gray-50 border-gray-100 text-gray-300'}`}>
+                  Unit Status: Idle
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right Panel: Map */}
-        <div className={`lg:col-span-8 relative rounded-2xl border overflow-hidden h-full transition-all duration-500 ${cardClasses}`}>
+        {/* Raster Map HUD Panel */}
+        <div className={`lg:col-span-8 relative rounded-2xl border overflow-hidden h-full transition-all duration-500 shadow-2xl ${cardClasses}`}>
           <div className="absolute inset-0 bg-[#02050A]">
             <img
               src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600"
-              alt="Map Background"
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${darkMode ? 'invert opacity-30 brightness-[0.7] contrast-[1.1] grayscale hover:scale-105' : 'opacity-80 hover:scale-105'}`}
+              alt="Raster Map"
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 pointer-events-none scale-110 ${darkMode ? 'invert opacity-20 contrast-[1.2] grayscale' : 'opacity-80'}`}
             />
-            <div className={`absolute inset-0 transition-opacity duration-500 ${darkMode ? 'bg-blue-900/10 mix-blend-color-dodge' : 'bg-gradient-to-t from-blue-900/40 via-transparent to-transparent'}`}></div>
+            <div className={`absolute inset-0 transition-opacity duration-500 ${darkMode ? 'bg-blue-900/10 mix-blend-screen' : 'bg-gradient-to-tr from-blue-900/40 via-transparent to-transparent'}`}></div>
           </div>
 
-          {/* Map UI Controls */}
-          <div className={`absolute top-4 right-4 backdrop-blur border rounded-xl p-2 flex flex-col gap-2 transition-colors ${darkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-white/90 border-gray-200'}`}>
-            <button className="p-2 text-slate-500 hover:text-blue-500 transition-colors"><MapIcon size={20} /></button>
-            <button className="p-2 text-slate-500 hover:text-blue-500 transition-colors"><Navigation size={20} /></button>
-          </div>
-
-          {/* Unit Marker */}
-          <div className="absolute top-[35%] left-[25%]">
-            <div className="flex flex-col items-center">
-              <div className={`px-2 py-1 rounded-lg text-[10px] font-bold mb-2 border backdrop-blur shadow-xl transition-all ${darkMode ? 'bg-slate-900/80 text-blue-400 border-blue-500/30' : 'bg-white/90 text-blue-600 border-white'}`}>
-                {team.id} ({team.name})
+          {/* HUD Info Widgets */}
+          <div className={`absolute bottom-8 left-8 p-6 px-10 rounded-2xl border-2 backdrop-blur-xl flex items-center gap-10 transition-all duration-500 shadow-2xl ${darkMode ? 'bg-slate-950/80 border-slate-800/80' : 'bg-white/90 border-white'}`}>
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-lg shadow-blue-500/10"><Navigation size={22} /></div>
+              <div>
+                <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Estimated Arrival</div>
+                <div className={`text-2xl font-black tracking-tighter ${darkMode ? 'text-white' : 'text-gray-900'}`}>{mission ? mission.eta : '---'}</div>
               </div>
-              <div className="relative">
-                <div className="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,0.6)] z-10 animate-pulse"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 border border-blue-500/40 rounded-full animate-ping"></div>
+            </div>
+            <div className={`w-px h-12 ${darkMode ? 'bg-slate-800' : 'bg-gray-100'}`}></div>
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20 shadow-lg shadow-orange-500/10"><Activity size={22} /></div>
+              <div>
+                <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Raster Distance</div>
+                <div className={`text-2xl font-black tracking-tighter ${darkMode ? 'text-white' : 'text-gray-900'}`}>{mission ? mission.distance : '---'}</div>
               </div>
             </div>
           </div>
 
-          {/* Mission Markers & Route */}
-          {mission && (
-            <>
-              {/* Fake Route */}
-              <svg className="absolute w-[400px] h-[200px] top-[35%] left-[25%] overflow-visible pointer-events-none">
-                <path d="M 0 0 C 80 -20, 150 80, 280 120" fill="none" stroke={darkMode ? "rgba(59,130,246,0.4)" : "#3b82f6"} strokeWidth="5" strokeDasharray="8 8" className="animate-[dash_20s_linear_infinite]" />
-              </svg>
-
-              <div className="absolute top-[calc(35%+120px)] left-[calc(25%+280px)] flex flex-col items-center animate-bounce">
-                <div className={`px-2 py-1 rounded-lg text-[10px] font-bold mb-2 border backdrop-blur shadow-xl transition-all ${darkMode ? 'bg-slate-900/80 text-red-400 border-red-500/30' : 'bg-white/90 text-red-600 border-white'}`}>
-                  {mission.type}
-                </div>
-                <MapPin size={40} className="text-red-500 drop-shadow-2xl" fill="#ef444444" />
-              </div>
-            </>
-          )}
-
-          {/* ETA Overlay Card */}
-          {mission && (
-            <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 rounded-2xl shadow-2xl border p-4 px-8 flex items-center gap-8 transition-all duration-500 ${darkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-white text-gray-900'}`}>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500"><Navigation size={20} /></div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">ETA</div>
-                  <div className="text-xl font-bold">{mission.eta}</div>
-                </div>
-              </div>
-              <div className={`w-px h-10 ${darkMode ? 'bg-slate-800' : 'bg-gray-100'}`}></div>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500"><Activity size={20} /></div>
-                <div>
-                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Dist</div>
-                  <div className="text-xl font-bold">{mission.distance}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="absolute bottom-4 right-4 text-right pointer-events-none opacity-40 font-mono text-[9px] uppercase tracking-tighter">
-            <div>SATTELITE_LOCK: [YES]</div>
-            <div>SIGNAL_STRENGTH: [STABLE]</div>
-            <div>DEVICE: AURA_FIELD_{team.id}</div>
+          <div className="absolute top-8 left-8 text-left pointer-events-none space-y-2 opacity-50">
+            <div className="font-black text-[9px] uppercase tracking-[0.2em] text-blue-500 bg-blue-500/5 px-3 py-1 rounded-lg border border-blue-500/20">Telemetry Lock: Active</div>
+            <div className="font-black text-[9px] uppercase tracking-[0.2em] text-slate-500 px-3">Sector: {team.id}_GRID_ALPHA</div>
           </div>
         </div>
       </div>

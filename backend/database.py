@@ -45,9 +45,9 @@ async def init_db():
         if not officers:
             print("[DATABASE] Inserting dummy officers for demo...")
             dummy_data = [
-                GroundOfficer(id="GO-01", name="Officer Alpha", lat=12.9750, lon=77.5900, status="available"),
-                GroundOfficer(id="GO-02", name="Officer Bravo", lat=12.9600, lon=77.5800, status="busy", current_task_id="P-101"),
-                GroundOfficer(id="GO-03", name="Officer Charlie", lat=12.9800, lon=77.6100, status="available")
+                GroundOfficer(id="GO-01", name="Officer Alpha", lat=12.4100, lon=75.7300, status="available"),
+                GroundOfficer(id="GO-02", name="Officer Bravo", lat=12.4300, lon=75.7100, status="busy", current_task_id="P-101"),
+                GroundOfficer(id="GO-03", name="Officer Charlie", lat=12.4000, lon=75.7600, status="available")
             ]
             session.add_all(dummy_data)
             await session.commit()

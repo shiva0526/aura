@@ -36,6 +36,19 @@ export async function getFinal() {
     }
 }
 
+export async function deployOfficer(data) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/officers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
 export async function getOfficers() {
     try {
         const res = await fetch(`${BASE_URL}/api/officers?t=${Date.now()}`, { cache: 'no-store' });

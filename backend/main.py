@@ -2,6 +2,7 @@ import os
 import time
 import json
 import uuid
+import random
 from layer2_oracle.oracle import run_oracle
 from layer3_compass.compass import run_compass
 from layer4_shield.shield import run_shield
@@ -48,6 +49,8 @@ def run_pipeline():
 
     if final:
         final["mission_id"] = str(uuid.uuid4())
+        final["lat"] = round(random.uniform(12.38, 12.46), 4)
+        final["lon"] = round(random.uniform(75.70, 75.79), 4)
         with open("final_plan.json", "w") as f:
             json.dump(final, f)
         print_final_plan(final)

@@ -70,6 +70,31 @@ class AssignRequest(BaseModel):
     lon: float
     task_id: str
 
+class OfficerCreate(BaseModel):
+    name: str
+    lat: float
+    lon: float
+
+@app.post("/api/officers")
+async def deploy_officer(request: OfficerCreate, db: AsyncSession = Depends(get_db)):
+    # Calculate next ID
+    query = select(GroundOfficer)
+    result = await db.execute(query)
+    count = len(result.scalars().all())
+    new_id = f"GO-{str(count + 1).zfill(2)}"
+    
+    new_officer = GroundOfficer(
+        id=new_id,
+        name=request.name,
+        lat=request.lat,
+        lon=request.lon,
+        status="available"
+    )
+    
+    db.add(new_officer)
+    await db.commit()
+    return {"id": new_id, "name": request.name, "status": "available"}
+
 @app.get("/api/officers")
 async def get_officers(db: AsyncSession = Depends(get_db)):
     query = select(GroundOfficer)
