@@ -46,6 +46,7 @@ export async function getOfficers() {
 }
 
 export async function assignOfficer(lat, lon, task_id) {
+    // POST requests are not cached, so no need for the timestamp here
     try {
         const res = await fetch(`${BASE_URL}/api/assign`, {
             method: "POST",

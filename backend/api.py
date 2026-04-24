@@ -70,7 +70,7 @@ async def get_officers(db: AsyncSession = Depends(get_db)):
     query = select(GroundOfficer)
     result = await db.execute(query)
     officers = result.scalars().all()
-    return [{"id": o.id, "name": o.name, "lat": o.lat, "lon": o.lon, "status": o.status} for o in officers]
+    return [{"id": o.id, "name": o.name, "lat": o.lat, "lon": o.lon, "status": o.status, "current_task_id": o.current_task_id} for o in officers]
 
 @app.post("/api/assign")
 async def assign_officer(request: AssignRequest, db: AsyncSession = Depends(get_db)):

@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { MapPin, Flag, Hospital, Tent, Navigation, AlertTriangle, User, ChevronRight, Map as MapIcon, Crosshair, CloudRain, Mountain, Battery, Radio } from 'lucide-react'
-import { getFinal, getOracle } from '../utils/api'
+import { getFinal, getOracle, getOfficers } from '../utils/api'
 
 export default function GroundDashboard() {
   const [arrived, setArrived] = useState(false)
@@ -9,23 +9,56 @@ export default function GroundDashboard() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
   const [mission, setMission] = useState(null)
   const [oracleData, setOracleData] = useState(null)
+  const [lastSeenMissionId, setLastSeenMissionId] = useState(null)
+  const [showDispatch, setShowDispatch] = useState(false)
+  const [dispatchData, setDispatchData] = useState(null)
 
-  // Fetch assignment data from backend
+  // Poll for new dispatch assignments
   useEffect(() => {
     const fetchMission = async () => {
       const finalData = await getFinal()
       if (finalData && !finalData.status?.includes('waiting')) {
-        setMission(finalData)
-      }
-      const oracle = await getOracle()
-      if (oracle && !oracle.status?.includes('waiting')) {
-        setOracleData(oracle)
+        // Check if there's a new mission we haven't seen
+        if (finalData.mission_id && finalData.mission_id !== lastSeenMissionId) {
+          // Check if an officer has been assigned (status = busy)
+          const officers = await getOfficers()
+          const assignedOfficer = officers?.find(o => o.status === 'busy' && o.current_task_id)
+
+          if (assignedOfficer) {
+            setLastSeenMissionId(finalData.mission_id)
+            setMission(finalData)
+
+            const oracle = await getOracle()
+            if (oracle && !oracle.status?.includes('waiting')) {
+              setOracleData(oracle)
+            }
+
+            setDispatchData({
+              officerName: assignedOfficer.name,
+              officerId: assignedOfficer.id,
+              taskId: assignedOfficer.current_task_id,
+              severity: finalData.severity || oracle?.severity_level || 'HIGH',
+              route: finalData.route || 'Route B',
+              hospital: finalData.hospital || 'City General',
+              teams: finalData.teams || 2
+            })
+            setShowDispatch(true)
+            setArrived(false)
+            setShowFeedback(false)
+            setFeedbackSubmitted(false)
+          }
+        }
       }
     }
+
     fetchMission()
     const interval = setInterval(fetchMission, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [lastSeenMissionId])
+
+  const handleAcceptDispatch = () => {
+    setShowDispatch(false)
+  }
 
   const handleArrive = () => {
     setArrived(true)
@@ -75,9 +108,9 @@ export default function GroundDashboard() {
             <span className="flex items-center gap-1.5"><Radio size={14} className="text-blue-500" /> CH-04</span>
           </div>
           <div className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${severity === 'HIGH' ? 'bg-red-50 text-red-600 border-red-100' :
-              severity === 'MEDIUM' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                severity === 'LOW' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
-                  'bg-gray-50 text-gray-500 border-gray-200'
+            severity === 'MEDIUM' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+              severity === 'LOW' ? 'bg-yellow-50 text-yellow-600 border-yellow-100' :
+                'bg-gray-50 text-gray-500 border-gray-200'
             }`}>
             Severity: {severity}
           </div>
@@ -90,8 +123,8 @@ export default function GroundDashboard() {
         <div className="lg:col-span-4 bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col relative overflow-hidden h-full">
           {/* Decorative colored top border */}
           <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${severity === 'HIGH' ? 'from-red-500 via-red-400 to-orange-400' :
-              severity === 'MEDIUM' ? 'from-orange-500 via-orange-400 to-yellow-400' :
-                'from-yellow-400 via-yellow-300 to-green-400'
+            severity === 'MEDIUM' ? 'from-orange-500 via-orange-400 to-yellow-400' :
+              'from-yellow-400 via-yellow-300 to-green-400'
             }`}></div>
 
           <div className="p-6 flex-1 flex flex-col overflow-y-auto">
@@ -142,8 +175,8 @@ export default function GroundDashboard() {
                     <span className="text-sm font-semibold text-gray-700">Wildfire</span>
                   </div>
                   <span className={`text-sm font-bold ${oracleData?.wildfire_forecast?.includes('CRITICAL') ? 'text-red-600' :
-                      oracleData?.wildfire_forecast?.includes('HIGH') ? 'text-orange-600' :
-                        'text-green-600'
+                    oracleData?.wildfire_forecast?.includes('HIGH') ? 'text-orange-600' :
+                      'text-green-600'
                     }`}>{oracleData?.wildfire_forecast || 'Checking...'}</span>
                 </div>
               </div>
@@ -245,6 +278,62 @@ export default function GroundDashboard() {
           </div>
         </div>
       </div>
+
+      {/* NEW DISPATCH POPUP — Triggered when Camp assigns an officer */}
+      {showDispatch && dispatchData && (
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-lg animate-slide-up relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-blue-400 to-green-400"></div>
+
+            <div className="flex items-center gap-4 mb-5 text-blue-500 mt-2">
+              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100">
+                <Navigation size={32} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">New Dispatch Received</h3>
+                <p className="text-sm text-gray-500 font-medium mt-0.5">AURA has assigned you a rescue mission</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-100 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Task ID</span>
+                <span className="text-sm font-bold text-gray-900 bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100">{dispatchData.taskId}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Officer</span>
+                <span className="text-sm font-bold text-gray-900">{dispatchData.officerId} — {dispatchData.officerName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Severity</span>
+                <span className={`text-sm font-bold px-2 py-0.5 rounded border ${dispatchData.severity === 'HIGH' ? 'bg-red-50 text-red-600 border-red-100' :
+                    dispatchData.severity === 'MEDIUM' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                      'bg-yellow-50 text-yellow-600 border-yellow-100'
+                  }`}>{dispatchData.severity}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Route</span>
+                <span className="text-sm font-bold text-gray-900">{dispatchData.route}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Hospital</span>
+                <span className="text-sm font-bold text-gray-900">{dispatchData.hospital}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Teams</span>
+                <span className="text-sm font-bold text-gray-900">{dispatchData.teams}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleAcceptDispatch}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all transform active:scale-[0.98] shadow-lg shadow-blue-500/30 text-lg"
+            >
+              <Navigation size={20} /> Accept & Navigate
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Feedback Popup Overlays */}
       {showFeedback && (
