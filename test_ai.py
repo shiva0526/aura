@@ -15,13 +15,13 @@ disaster_data = {
 print("📡 Asking AURA to find the closest available officer...")
 try:
     response = requests.post("http://localhost:8000/api/assign", json=disaster_data)
-
+    
     if response.status_code == 200:
         officer = response.json()
         print("\n✅ MATCH FOUND!")
         print(f"Officer Assigned: {officer['name']} (ID: {officer['id']})")
         print(f"Distance to disaster: {officer['distance']:.2f} km")
     else:
-        print(f"❌ Error: {response.status_code} - {response.text}")
+        print(f"\n❌ Backend Error ({response.status_code}): {response.text}")
 except requests.exceptions.ConnectionError:
-    print("❌ Connection Error: FastAPI server is not running on localhost:8000")
+    print("\n❌ Connection Error: Is your FastAPI server running?")

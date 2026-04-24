@@ -2,7 +2,7 @@
 import math
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from .database import GroundOfficer
+from database import GroundOfficer
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     # Haversine formula

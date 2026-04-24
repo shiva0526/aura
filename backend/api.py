@@ -4,8 +4,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from .database import get_db, GroundOfficer
-from .assignment_ai import find_closest_officer, assign_task_to_officer
+from database import get_db, GroundOfficer
+from assignment_ai import find_closest_officer, assign_task_to_officer
 import json
 import os
 

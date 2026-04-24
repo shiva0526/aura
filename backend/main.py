@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import uuid
 from layer2_oracle.oracle import run_oracle
 from layer3_compass.compass import run_compass
 from layer4_shield.shield import run_shield
@@ -23,9 +24,7 @@ def print_final_plan(plan):
     print("=" * 50)
 
 def cleanup():
-    for filename in ["sos_alert.json", "oracle_report.json", "rescue_plan.json"]:
-        if os.path.exists(filename):
-            os.remove(filename)
+    pass
 
 def run_pipeline():
     with open("sos_alert.json", "r") as f:
@@ -48,6 +47,9 @@ def run_pipeline():
     time.sleep(1)
 
     if final:
+        final["mission_id"] = str(uuid.uuid4())
+        with open("final_plan.json", "w") as f:
+            json.dump(final, f)
         print_final_plan(final)
         
     cleanup()
