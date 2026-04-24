@@ -2,7 +2,7 @@ const BASE_URL = "http://localhost:8000"
 
 export async function getStatus() {
     try {
-        const res = await fetch(`${BASE_URL}/status`);
+        const res = await fetch(`${BASE_URL}/status?t=${Date.now()}`, { cache: 'no-store' });
         return await res.json();
     } catch {
         return null;
@@ -11,7 +11,7 @@ export async function getStatus() {
 
 export async function getOracle() {
     try {
-        const res = await fetch(`${BASE_URL}/oracle`);
+        const res = await fetch(`${BASE_URL}/oracle?t=${Date.now()}`, { cache: 'no-store' });
         return await res.json();
     } catch {
         return null;
@@ -20,7 +20,7 @@ export async function getOracle() {
 
 export async function getPlan() {
     try {
-        const res = await fetch(`${BASE_URL}/plan`);
+        const res = await fetch(`${BASE_URL}/plan?t=${Date.now()}`, { cache: 'no-store' });
         return await res.json();
     } catch {
         return null;
@@ -29,7 +29,7 @@ export async function getPlan() {
 
 export async function getFinal() {
     try {
-        const res = await fetch(`${BASE_URL}/final`);
+        const res = await fetch(`${BASE_URL}/final?t=${Date.now()}`, { cache: 'no-store' });
         return await res.json();
     } catch {
         return null;
@@ -38,7 +38,7 @@ export async function getFinal() {
 
 export async function getOfficers() {
     try {
-        const res = await fetch(`${BASE_URL}/api/officers`);
+        const res = await fetch(`${BASE_URL}/api/officers?t=${Date.now()}`, { cache: 'no-store' });
         return await res.json();
     } catch {
         return null;
