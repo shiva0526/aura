@@ -7,6 +7,11 @@ from layer2_oracle.oracle import run_oracle
 from layer3_compass.compass import run_compass
 from layer4_shield.shield import run_shield
 
+# Ensure all JSON files are written to the project root (aura/)
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
+os.chdir(PROJECT_ROOT)
+
 def print_banner():
     print("=" * 50)
     print("   AURA — AUTONOMOUS DISASTER RESPONSE SYSTEM  ")

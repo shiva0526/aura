@@ -150,7 +150,8 @@ def send_to_oracle(face_count, distance_cm, snapshot_path):
             "address": gps_address
         }
     }
-    alert_path = os.path.join(SCRIPT_DIR, "sos_alert.json")
+    PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+    alert_path = os.path.join(PROJECT_ROOT, "sos_alert.json")
     with open(alert_path, "w") as f:
         json.dump(payload, f, indent=2)
     print(f"Person count : {face_count} | 🚨 SOS TRIGGERED | location in alert :\"{gps_lat}, {gps_lng}\"")
