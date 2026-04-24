@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import { useState } from 'react'
-import { LayoutDashboard, MessageSquare, Users, Settings, Bell, Search, Map, MapPin, Crosshair, AlertTriangle, CheckCircle2, Navigation, Radio, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Users, Settings, Bell, Search, Map, MapPin, Crosshair, AlertTriangle, CheckCircle2, Navigation, Radio, Moon, Sun, Activity } from 'lucide-react'
 
 export default function CampDashboard() {
   const [darkMode, setDarkMode] = useState(true)
@@ -157,8 +157,8 @@ export default function CampDashboard() {
                         <td className="px-5 py-4 font-medium">{officer.name}</td>
                         <td className="px-5 py-4">
                           <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border flex w-max items-center gap-1.5 ${officer.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                              officer.status === 'En Route' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                            officer.status === 'En Route' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                              'bg-slate-500/10 text-slate-400 border-slate-500/20'
                             }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${officer.status === 'Active' ? 'bg-green-500 animate-pulse' : officer.status === 'En Route' ? 'bg-yellow-500' : 'bg-slate-400'}`}></span>
                             {officer.status}
@@ -167,8 +167,8 @@ export default function CampDashboard() {
                         <td className="px-5 py-4 font-mono opacity-60 text-xs">{officer.location}</td>
                         <td className="px-5 py-4">
                           <button className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${officer.action === 'Assign'
-                              ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500 hover:text-white border border-blue-500/20 shadow-sm'
-                              : 'text-slate-500 bg-slate-800/50 cursor-default'
+                            ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500 hover:text-white border border-blue-500/20 shadow-sm'
+                            : 'text-slate-500 bg-slate-800/50 cursor-default'
                             }`}>
                             {officer.action}
                           </button>
