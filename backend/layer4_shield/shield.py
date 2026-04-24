@@ -59,6 +59,15 @@ def run_shield():
         plan["status"] = "BEST_AVAILABLE"
 
     plan["attempts"] = attempt
+    
+    if os.path.exists("oracle_report.json"):
+        with open("oracle_report.json", "r") as f:
+            oracle_report = json.load(f)
+    else:
+        oracle_report = {}
+        
+    plan["severity"] = oracle_report.get("severity_level", "UNKNOWN")
+    
     with open("final_plan.json", "w") as f:
         json.dump(plan, f)
 

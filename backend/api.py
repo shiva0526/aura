@@ -1,6 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from .database import get_db, GroundOfficer
+from .assignment_ai import find_closest_officer, assign_task_to_officer
 import json
 import os
 
@@ -54,3 +59,31 @@ def get_map():
     if os.path.exists("map.html"):
         return FileResponse("map.html")
     return {"status": "no map yet"}
+
+class AssignRequest(BaseModel):
+    lat: float
+    lon: float
+    task_id: str
+
+@app.get("/api/officers")
+async def get_officers(db: AsyncSession = Depends(get_db)):
+    query = select(GroundOfficer)
+    result = await db.execute(query)
+    officers = result.scalars().all()
+    return [{"id": o.id, "name": o.name, "lat": o.lat, "lon": o.lon, "status": o.status} for o in officers]
+
+@app.post("/api/assign")
+async def assign_officer(request: AssignRequest, db: AsyncSession = Depends(get_db)):
+    # 1. Find closest
+    closest = await find_closest_officer(db, request.lat, request.lon)
+    
+    if not closest:
+        raise HTTPException(status_code=404, detail="No available officers found.")
+    
+    # 2. Assign task
+    success = await assign_task_to_officer(db, closest["id"], request.task_id)
+    
+    if success:
+        return closest
+    else:
+        raise HTTPException(status_code=500, detail="Failed to assign officer.")

@@ -28,10 +28,15 @@ def cleanup():
             os.remove(filename)
 
 def run_pipeline():
+    with open("sos_alert.json", "r") as f:
+        alert_data = json.load(f)
+        
+    os.remove("sos_alert.json")
+    
     print("\n[AURA] 🚨 SOS DETECTED — Activating Pipeline\n")
 
     print("[AURA] Running ORACLE...")
-    oracle = run_oracle()
+    oracle = run_oracle(alert_data)
     time.sleep(1)
 
     print("[AURA] Running COMPASS...")
@@ -46,6 +51,7 @@ def run_pipeline():
         print_final_plan(final)
         
     cleanup()
+    time.sleep(3)
 
     print("\n[AURA] Ready for next alert...\n")
 

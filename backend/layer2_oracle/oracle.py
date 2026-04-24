@@ -45,7 +45,7 @@ def predict_wildfire(weather):
     wind = weather["wind_speed"]
     humidity = weather["humidity"]
     
-    if wind > 40 and humidity < 20:
+    if wind > 40 and humidity <= 20:
         return "CRITICAL — spreads North-East in 30 mins"
     elif wind > 20 and humidity < 40:
         return "HIGH — spreading slowly"
@@ -60,13 +60,15 @@ def get_severity_level(score):
     else:
         return "LOW"
 
-def run_oracle():
-    if not os.path.exists("sos_alert.json"):
-        print("[ORACLE] Waiting...")
-        return None
-
-    with open("sos_alert.json", "r") as f:
-        alert_data = json.load(f)
+def run_oracle(alert=None):
+    if alert is not None:
+        alert_data = alert
+    else:
+        if not os.path.exists("sos_alert.json"):
+            print("[ORACLE] Waiting...")
+            return None
+        with open("sos_alert.json", "r") as f:
+            alert_data = json.load(f)
 
     weather = get_weather()
     score = score_severity(alert_data["face_count"], alert_data["distance_cm"], weather)
