@@ -11,6 +11,9 @@ import os
 
 app = FastAPI()
 
+# Resolve paths from the project root (one level up from backend/)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -19,18 +22,19 @@ app.add_middleware(
 )
 
 def read_json(filename):
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
+    filepath = os.path.join(PROJECT_ROOT, filename)
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
             return json.load(f)
     return None
 
 @app.get("/status")
 def get_status():
     return {
-        "pulse": os.path.exists("sos_alert.json"),
-        "oracle": os.path.exists("oracle_report.json"),
-        "compass": os.path.exists("rescue_plan.json"),
-        "shield": os.path.exists("final_plan.json")
+        "pulse": os.path.exists(os.path.join(PROJECT_ROOT, "sos_alert.json")),
+        "oracle": os.path.exists(os.path.join(PROJECT_ROOT, "oracle_report.json")),
+        "compass": os.path.exists(os.path.join(PROJECT_ROOT, "rescue_plan.json")),
+        "shield": os.path.exists(os.path.join(PROJECT_ROOT, "final_plan.json"))
     }
 
 @app.get("/oracle")
@@ -56,8 +60,9 @@ def get_final():
 
 @app.get("/map")
 def get_map():
-    if os.path.exists("map.html"):
-        return FileResponse("map.html")
+    map_path = os.path.join(PROJECT_ROOT, "map.html")
+    if os.path.exists(map_path):
+        return FileResponse(map_path)
     return {"status": "no map yet"}
 
 class AssignRequest(BaseModel):
