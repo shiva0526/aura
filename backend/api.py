@@ -117,3 +117,60 @@ async def assign_officer(request: AssignRequest, db: AsyncSession = Depends(get_
         return closest
     else:
         raise HTTPException(status_code=500, detail="Failed to assign officer.")
+
+class ApprovedMission(BaseModel):
+    mission_id: str
+    officer_id: str
+    officer_name: str
+    officer_lat: float
+    officer_lon: float
+    victim_lat: float
+    victim_lon: float
+    hospital_name: str
+    hospital_lat: float
+    hospital_lon: float
+    severity: str
+    victim_count: int
+
+@app.post("/api/approve-mission")
+async def approve_mission(data: ApprovedMission, db: AsyncSession = Depends(get_db)):
+    query = select(GroundOfficer).where(GroundOfficer.id == data.officer_id)
+    result = await db.execute(query)
+    officer = result.scalar_one_or_none()
+    
+    if officer:
+        officer.status = 'busy'
+        officer.current_task_id = data.mission_id
+        await db.commit()
+
+    filepath = os.path.join(PROJECT_ROOT, "approved_mission.json")
+    with open(filepath, "w") as f:
+        json.dump(data.dict(), f)
+    return {"status": "ok"}
+
+@app.get("/api/approved-mission")
+def get_approved_mission():
+    filepath = os.path.join(PROJECT_ROOT, "approved_mission.json")
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            return json.load(f)
+    return {"status": "waiting"}
+
+class FreeOfficerRequest(BaseModel):
+    officer_id: str
+
+@app.post("/api/free-officer")
+async def free_officer(request: FreeOfficerRequest, db: AsyncSession = Depends(get_db)):
+    query = select(GroundOfficer).where(GroundOfficer.id == request.officer_id)
+    result = await db.execute(query)
+    officer = result.scalar_one_or_none()
+    
+    if officer:
+        officer.status = 'available'
+        officer.current_task_id = None
+        await db.commit()
+    
+    filepath = os.path.join(PROJECT_ROOT, "approved_mission.json")
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    return {"status": "ok"}

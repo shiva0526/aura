@@ -1,7 +1,13 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { MapPin, Flag, Hospital, Tent, Navigation, AlertTriangle, User, ChevronRight, Map as MapIcon, Crosshair, CloudRain, Mountain, Battery, Radio, Moon, Sun, Activity, ChevronDown } from 'lucide-react'
-import { getOfficers, getFinal } from '../utils/api'
+import { getOfficers, getFinal, getApprovedMission, freeOfficer } from '../utils/api'
+import dynamic from 'next/dynamic'
+
+const GroundRouteMap = dynamic(() => import('../components/GroundRouteMap'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400">Loading Route Map...</div>
+})
 
 export default function GroundDashboard() {
   const [darkMode, setDarkMode] = useState(true)
@@ -10,6 +16,7 @@ export default function GroundDashboard() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [officers, setOfficers] = useState([])
   const [globalMission, setGlobalMission] = useState(null)
+  const [approvedMission, setApprovedMission] = useState(null)
 
   // Real-time Polling
   useEffect(() => {
@@ -20,6 +27,11 @@ export default function GroundDashboard() {
       const finalData = await getFinal();
       if (finalData && finalData.mission_id) {
         setGlobalMission(finalData);
+      }
+
+      const approved = await getApprovedMission();
+      if (approved && approved.mission_id) {
+        setApprovedMission(approved);
       }
     };
 
@@ -58,6 +70,14 @@ export default function GroundDashboard() {
     setTimeout(() => {
       setShowFeedback(true)
     }, 800)
+  }
+
+  const handleComplete = async () => {
+    if (!team || team.id === '...') return;
+    await freeOfficer(team.id);
+    setArrived(false);
+    setShowFeedback(false);
+    setApprovedMission(null);
   }
 
   return (
@@ -202,8 +222,8 @@ export default function GroundDashboard() {
                       <button className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-red-500 hover:text-red-500 text-slate-500' : 'bg-white border-gray-100 hover:border-red-500 text-gray-500'}`}>
                         <Hospital size={24} /> Route Hospital
                       </button>
-                      <button className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-green-500 hover:text-green-500 text-slate-500' : 'bg-white border-gray-100 hover:border-green-500 text-gray-500'}`}>
-                        <Tent size={24} /> Route Base
+                      <button onClick={handleComplete} className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-green-500 hover:text-green-500 text-slate-500' : 'bg-white border-gray-100 hover:border-green-500 text-gray-500'}`}>
+                        <Activity size={24} /> Complete & Free Unit
                       </button>
                     </div>
                   </div>
@@ -219,14 +239,33 @@ export default function GroundDashboard() {
 
         {/* Raster Map HUD Panel */}
         <div className={`lg:col-span-8 relative rounded-2xl border overflow-hidden h-full transition-all duration-500 shadow-2xl ${cardClasses}`}>
-          <div className="absolute inset-0 bg-[#02050A]">
-            <img
-              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600"
-              alt="Raster Map"
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 pointer-events-none scale-110 ${darkMode ? 'invert opacity-20 contrast-[1.2] grayscale' : 'opacity-80'}`}
-            />
-            <div className={`absolute inset-0 transition-opacity duration-500 ${darkMode ? 'bg-blue-900/10 mix-blend-screen' : 'bg-gradient-to-tr from-blue-900/40 via-transparent to-transparent'}`}></div>
-          </div>
+          {approvedMission && approvedMission.officer_id === team.id ? (
+            /* Live Route Map when mission is approved */
+            <>
+              <div className="absolute top-4 left-4 z-[1000] pointer-events-none space-y-2">
+                <div className="font-black text-[9px] uppercase tracking-[0.2em] text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 backdrop-blur-sm pointer-events-none">
+                  🔴 LIVE ROUTE — {approvedMission.officer_name} → Victim → {approvedMission.hospital_name}
+                </div>
+              </div>
+              <GroundRouteMap
+                officerPos={[approvedMission.officer_lat, approvedMission.officer_lon]}
+                victimPos={[approvedMission.victim_lat, approvedMission.victim_lon]}
+                hospitalPos={[approvedMission.hospital_lat, approvedMission.hospital_lon]}
+              />
+            </>
+          ) : (
+            /* Default static map when no mission */
+            <>
+              <div className="absolute inset-0 bg-[#02050A]">
+                <img
+                  src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600"
+                  alt="Raster Map"
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 pointer-events-none scale-110 ${darkMode ? 'invert opacity-20 contrast-[1.2] grayscale' : 'opacity-80'}`}
+                />
+                <div className={`absolute inset-0 transition-opacity duration-500 ${darkMode ? 'bg-blue-900/10 mix-blend-screen' : 'bg-gradient-to-tr from-blue-900/40 via-transparent to-transparent'}`}></div>
+              </div>
+            </>
+          )}
 
           {/* HUD Info Widgets */}
           <div className={`absolute bottom-8 left-8 p-6 px-10 rounded-2xl border-2 backdrop-blur-xl flex items-center gap-10 transition-all duration-500 shadow-2xl ${darkMode ? 'bg-slate-950/80 border-slate-800/80' : 'bg-white/90 border-white'}`}>

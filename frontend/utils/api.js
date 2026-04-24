@@ -72,3 +72,38 @@ export async function assignOfficer(lat, lon, task_id) {
         return null;
     }
 }
+
+export async function approveMission(data) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/approve-mission`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+export async function getApprovedMission() {
+    try {
+        const res = await fetch(`${BASE_URL}/api/approved-mission?t=${Date.now()}`, { cache: 'no-store' });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+export async function freeOfficer(officer_id) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/free-officer`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ officer_id })
+        });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}

@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
 import { LayoutDashboard, MessageSquare, Users, Settings, Bell, Search, Map, MapPin, Crosshair, AlertTriangle, CheckCircle2, Navigation, Radio, Moon, Sun, Activity, Plus, X } from 'lucide-react'
-import { getOfficers, deployOfficer, getFinal } from '../utils/api'
+import { getOfficers, deployOfficer, getFinal, approveMission } from '../utils/api'
 import dynamic from 'next/dynamic'
 
 // Dynamically import the map so it only loads in the browser
@@ -83,7 +83,8 @@ export default function CampDashboard() {
                   lat: targetLat,
                   lon: targetLon,
                   hospital: targetHosp,
-                  severity: finalData.severity || 'CRITICAL'
+                  severity: finalData.severity || 'CRITICAL',
+                  face_count: finalData.face_count || 1
                 });
                 setLastSeenMissionId(finalData.mission_id);
               }
@@ -103,8 +104,26 @@ export default function CampDashboard() {
     return () => { isSubscribed = false; clearInterval(interval); };
   }, [pendingMission, lastSeenMissionId]);
 
-  const handleApprove = (officerId) => {
+  const handleApprove = async (officerId) => {
     if (!pendingMission) return;
+    const officer = officers.find(o => o.id === officerId);
+    const hospital = hospitals.find(h => h.name.toLowerCase().includes(pendingMission.hospital.toLowerCase().split(' ')[0])) || hospitals[0];
+
+    await approveMission({
+      mission_id: pendingMission.mission_id,
+      officer_id: officerId,
+      officer_name: officer?.name || officerId,
+      officer_lat: officer?.lat || 12.42,
+      officer_lon: officer?.lon || 75.74,
+      victim_lat: pendingMission.lat,
+      victim_lon: pendingMission.lon,
+      hospital_name: pendingMission.hospital,
+      hospital_lat: hospital.lat,
+      hospital_lon: hospital.lon,
+      severity: pendingMission.severity,
+      victim_count: pendingMission.face_count || 1
+    });
+
     setOfficers(prev => prev.map(o => o.id === officerId ? { ...o, status: 'En Route', current_task_id: pendingMission.mission_id } : o));
     handledMissions.current.add(pendingMission.mission_id);
     setPendingMission(null);

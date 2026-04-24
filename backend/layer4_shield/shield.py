@@ -67,6 +67,7 @@ def run_shield():
         oracle_report = {}
         
     plan["severity"] = oracle_report.get("severity_level", "UNKNOWN")
+    plan["face_count"] = oracle_report.get("face_count", 1)
     
     with open("final_plan.json", "w") as f:
         json.dump(plan, f)

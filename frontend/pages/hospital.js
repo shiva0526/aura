@@ -1,13 +1,15 @@
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { LayoutDashboard, MessageSquare, Users, Settings, Megaphone, BedDouble, UserCheck, AlertTriangle, Filter } from 'lucide-react'
-import { getFinal, getOracle } from '../utils/api'
+import { getFinal, getOracle, getApprovedMission } from '../utils/api'
 
 export default function HospitalDashboard() {
   const [bedInput, setBedInput] = useState('25')
   const [bedsConfirmed, setBedsConfirmed] = useState(false)
   const [mission, setMission] = useState(null)
   const [oracleData, setOracleData] = useState(null)
+  const [approvedMission, setApprovedMission] = useState(null)
+  const [lastApprovedId, setLastApprovedId] = useState(null)
 
   // Poll backend for live data
   useEffect(() => {
@@ -19,6 +21,17 @@ export default function HospitalDashboard() {
       const oracle = await getOracle()
       if (oracle && !oracle.status?.includes('waiting')) {
         setOracleData(oracle)
+      }
+
+      const approved = await getApprovedMission();
+      if (approved && approved.mission_id) {
+        setApprovedMission(approved);
+        // If it's a new approved mission, pop up the banner and set initial bed request
+        if (approved.mission_id !== lastApprovedId) {
+          setLastApprovedId(approved.mission_id);
+          setBedsConfirmed(false);
+          setBedInput(String(approved.victim_count || 1));
+        }
       }
     }
     fetchData()
@@ -110,7 +123,11 @@ export default function HospitalDashboard() {
                 <div>
                   <h3 className="font-bold text-xl tracking-tight">Urgent Request from Base Camp</h3>
                   <p className="text-blue-100 text-sm mt-1 font-medium">
-                    {mission ? `${teamsDispatched} rescue teams dispatched via ${routeName}. ${severity} severity alert.` : 'Mass casualty incident in Sector 7. Immediate bed allocation required.'}
+                    {approvedMission && !bedsConfirmed
+                      ? `Alert: ${approvedMission.victim_count} incoming victims assigned to this hospital. En route via team ${approvedMission.officer_id}.`
+                      : mission
+                        ? `${teamsDispatched} rescue teams dispatched via ${routeName}. ${severity} severity alert.`
+                        : 'Mass casualty incident in Sector 7. Immediate bed allocation required.'}
                   </p>
                 </div>
               </div>
