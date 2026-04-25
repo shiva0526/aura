@@ -4,6 +4,7 @@ import React from 'react'
 import { LayoutDashboard, MessageSquare, Users, Settings, Bell, Search, Map, MapPin, Crosshair, AlertTriangle, CheckCircle2, Navigation, Radio, Moon, Sun, Activity, Plus, X, Trash2 } from 'lucide-react'
 import { getOfficers, deployOfficer, getFinal, approveMission, deleteOfficer } from '../utils/api'
 import dynamic from 'next/dynamic'
+import IgnitionWidget from '../components/IgnitionWidget'
 
 // Dynamically import the map so it only loads in the browser
 const RescueMap = dynamic(() => import('../components/RescueMap'), {
@@ -289,7 +290,10 @@ export default function CampDashboard() {
             </div>
 
             {/* Right Column - Field Units */}
-            <div className="col-span-5 flex flex-col h-full min-h-0">
+            <div className="col-span-5 flex flex-col h-full min-h-0 gap-6">
+
+              {/* Ignition Predictor */}
+              <IgnitionWidget darkMode={darkMode} />
 
               {/* Ground Unit Management */}
               <div className={`rounded-2xl border flex-1 relative flex flex-col transition-all duration-500 min-h-0 overflow-hidden ${cardClasses}`}>
@@ -422,4 +426,4 @@ export default function CampDashboard() {
     </div>
   )
 }
- // cache clear
+// cache clear

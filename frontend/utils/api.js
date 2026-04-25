@@ -96,6 +96,20 @@ export async function approveMission(data) {
     }
 }
 
+export async function getIgnitionPrediction(features) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/v1/predict-ignition`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(features)
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
 export async function getApprovedMission() {
     try {
         const res = await fetch(`${BASE_URL}/api/approved-mission?t=${Date.now()}`, { cache: 'no-store' });
@@ -112,6 +126,20 @@ export async function freeOfficer(officer_id) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ officer_id })
         });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+export async function getSpreadPrediction(features) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/v1/predict-spread`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(features)
+        });
+        if (!res.ok) return null;
         return await res.json();
     } catch {
         return null;
