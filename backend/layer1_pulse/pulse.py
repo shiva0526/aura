@@ -4,6 +4,7 @@ import time
 import os
 import json
 import socket
+import random
 import pynmea2
 from geopy.geocoders import Nominatim
 
@@ -98,7 +99,8 @@ def reverse_geocode(lat, lng):
 def get_location():
     global gps_lat, gps_lng, gps_address, gps_location
 
-    lat, lng = 13.168926, 77.533843
+    lat = round(random.uniform(12.4120, 12.4360), 6)
+    lng = round(random.uniform(75.7280, 75.7520), 6)
 
     if lat and lng:
         gps_lat = lat
