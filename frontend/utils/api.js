@@ -72,3 +72,31 @@ export async function assignOfficer(lat, lon, task_id) {
         return null;
     }
 }
+
+export async function getIgnitionPrediction(features) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/v1/predict-ignition`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(features)
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
+
+export async function getSpreadPrediction(features) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/v1/predict-spread`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(features)
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}

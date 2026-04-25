@@ -8,6 +8,23 @@ from database import get_db, GroundOfficer
 from assignment_ai import find_closest_officer, assign_task_to_officer
 import json
 import os
+import joblib
+import numpy as np
+
+# Load model
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "rescueops_forest_model.pkl")
+try:
+    forest_model = joblib.load(MODEL_PATH)
+except Exception as e:
+    print(f"Warning: Could not load forest model from {MODEL_PATH}: {e}")
+    forest_model = None
+
+IGNITION_MODEL_PATH = os.path.join(os.path.dirname(__file__), "rescueops_ignition_classifier.pkl")
+try:
+    ignition_model = joblib.load(IGNITION_MODEL_PATH)
+except Exception as e:
+    print(f"Warning: Could not load ignition model from {IGNITION_MODEL_PATH}: {e}")
+    ignition_model = None
 
 app = FastAPI()
 
@@ -117,3 +134,105 @@ async def assign_officer(request: AssignRequest, db: AsyncSession = Depends(get_
         return closest
     else:
         raise HTTPException(status_code=500, detail="Failed to assign officer.")
+
+class PredictSpreadRequest(BaseModel):
+    temp: float
+    RH: float
+    wind: float
+    ISI: float
+    DMC: float
+
+@app.post("/api/v1/predict-spread")
+def predict_spread(req: PredictSpreadRequest):
+    if forest_model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    # The model expects 12 features: ['X' 'Y' 'month' 'day' 'FFMC' 'DMC' 'DC' 'ISI' 'temp' 'RH' 'wind' 'rain']
+    # We will use defaults for the missing ones to avoid crashing.
+    features = np.array([[
+        5,           # X
+        5,           # Y
+        8,           # month
+        5,           # day
+        90.0,        # FFMC
+        req.DMC,     # DMC
+        500.0,       # DC
+        req.ISI,     # ISI
+        req.temp,    # temp
+        req.RH,      # RH
+        req.wind,    # wind
+        0.0          # rain
+    ]])
+    
+    # Predict area
+    predicted_area = forest_model.predict(features)[0]
+    
+    # Derive magnitude
+    spread_magnitude = float(max(50, predicted_area * 15)) # Ensure a minimum size for visualization
+    
+    # Derive heading (angle) based on wind, for visualization purposes
+    heading = float((req.wind * 45) % 360)
+    
+    # Risk level classification
+    if predicted_area < 2.0:
+        risk_level = "Stable"
+    elif predicted_area < 10.0:
+        risk_level = "Moderate"
+    else:
+        risk_level = "Critical"
+        
+    return {
+        "heading": heading,
+        "spread_magnitude": spread_magnitude,
+        "risk_level": risk_level,
+        "area": float(predicted_area)
+    }
+
+class PredictIgnitionRequest(BaseModel):
+    temp: float
+    RH: float
+    wind: float
+    rain: float
+    FFMC: float
+    DMC: float
+    ISI: float
+
+@app.post("/api/v1/predict-ignition")
+def predict_ignition(req: PredictIgnitionRequest):
+    if ignition_model is None:
+        raise HTTPException(status_code=503, detail="Ignition model not loaded")
+
+    # The model expects 7 features: ['Temperature' 'RH' 'Ws' 'Rain' 'FFMC' 'DMC' 'ISI']
+    features = np.array([[
+        req.temp,
+        req.RH,
+        req.wind,
+        req.rain,
+        req.FFMC,
+        req.DMC,
+        req.ISI
+    ]])
+    
+    # predict_proba returns [[prob_class_0, prob_class_1]]
+    try:
+        probabilities = ignition_model.predict_proba(features)[0]
+        # Depending on the model, it might just return 1 class if it was trained on 1 class, 
+        # but binary classifiers return 2.
+        if len(probabilities) > 1:
+            ignition_prob = float(probabilities[1] * 100)
+        else:
+            ignition_prob = float(probabilities[0] * 100) # fallback
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    if ignition_prob < 30.0:
+        risk_level = "SAFE"
+    elif ignition_prob <= 70.0:
+        risk_level = "WARNING"
+    else:
+        risk_level = "CRITICAL"
+        
+    return {
+        "ignition_probability": round(ignition_prob, 2),
+        "risk_level": risk_level
+    }

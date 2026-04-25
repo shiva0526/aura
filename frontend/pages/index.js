@@ -31,13 +31,13 @@ export default function RoleSelection() {
       disabled: false
     },
     {
-      id: 'admin',
-      title: 'Admin',
-      icon: <ShieldAlert size={32} className="text-gray-400 mb-2" />,
-      color: 'from-gray-200 to-gray-300',
-      path: '#',
-      disabled: true,
-      tag: 'Coming soon'
+      id: 'predictor',
+      title: 'Ignition Predictor',
+      icon: <ShieldAlert size={32} className="text-white mb-2" />,
+      color: 'from-purple-500 to-purple-600',
+      path: '/predictor',
+      disabled: false,
+      tag: 'New AI'
     }
   ]
 
