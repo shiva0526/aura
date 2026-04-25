@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-page-custom-font */
 import Head from 'next/head'
 import "../styles/globals.css";
 import 'leaflet/dist/leaflet.css';

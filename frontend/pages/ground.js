@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
-import { MapPin, Flag, Hospital, Tent, Navigation, AlertTriangle, User, ChevronRight, Map as MapIcon, Crosshair, CloudRain, Mountain, Battery, Radio, Moon, Sun, Activity, ChevronDown } from 'lucide-react'
+import { MapPin, Flag, Hospital, Tent, Navigation, AlertTriangle, User, ChevronRight, Map as MapIcon, Crosshair, CloudRain, Mountain, Battery, Radio, Moon, Sun, Activity, ChevronDown, CheckCircle2 } from 'lucide-react'
 import { getOfficers, getFinal, getApprovedMission, freeOfficer } from '../utils/api'
 import dynamic from 'next/dynamic'
 
@@ -14,6 +15,7 @@ export default function GroundDashboard() {
   const [selectedTeamId, setSelectedTeamId] = useState("GO-01")
   const [arrived, setArrived] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [routeLeg, setRouteLeg] = useState(null)
   const [officers, setOfficers] = useState([])
   const [globalMission, setGlobalMission] = useState(null)
   const [approvedMission, setApprovedMission] = useState(null)
@@ -67,6 +69,7 @@ export default function GroundDashboard() {
 
   const handleArrive = () => {
     setArrived(true)
+    setRouteLeg('full')
     setTimeout(() => {
       setShowFeedback(true)
     }, 800)
@@ -77,6 +80,7 @@ export default function GroundDashboard() {
     await freeOfficer(team.id);
     setArrived(false);
     setShowFeedback(false);
+    setRouteLeg(null);
     setApprovedMission(null);
   }
 
@@ -113,6 +117,7 @@ export default function GroundDashboard() {
                 setSelectedTeamId(e.target.value)
                 setArrived(false)
                 setShowFeedback(false)
+                setRouteLeg(null)
               }}
               className={`appearance-none font-black tracking-widest px-5 py-2 pr-12 rounded-xl border transition-all cursor-pointer text-xs uppercase ${darkMode ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-blue-500 focus:border-blue-500' : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300'
                 }`}
@@ -218,14 +223,17 @@ export default function GroundDashboard() {
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Protocol Override</span>
                       <div className="h-px bg-slate-800 flex-1"></div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-red-500 hover:text-red-500 text-slate-500' : 'bg-white border-gray-100 hover:border-red-500 text-gray-500'}`}>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <button onClick={() => setRouteLeg(routeLeg === 'sos' ? 'full' : 'sos')} className={`flex flex-col items-center justify-center py-5 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? (routeLeg === 'sos' ? 'bg-red-500/10 border-red-500 text-red-500' : 'bg-slate-950 border-slate-800 hover:border-red-500 hover:text-red-500 text-slate-500') : (routeLeg === 'sos' ? 'bg-red-50 border-red-500 text-red-500' : 'bg-white border-gray-100 hover:border-red-500 text-gray-500')}`}>
+                        <Crosshair size={24} /> SOS Route
+                      </button>
+                      <button onClick={() => setRouteLeg(routeLeg === 'hospital' ? 'full' : 'hospital')} className={`flex flex-col items-center justify-center py-5 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? (routeLeg === 'hospital' ? 'bg-blue-500/10 border-blue-500 text-blue-500' : 'bg-slate-950 border-slate-800 hover:border-blue-500 hover:text-blue-500 text-slate-500') : (routeLeg === 'hospital' ? 'bg-blue-50 border-blue-500 text-blue-500' : 'bg-white border-gray-100 hover:border-blue-500 text-gray-500')}`}>
                         <Hospital size={24} /> Route Hospital
                       </button>
-                      <button onClick={handleComplete} className={`flex flex-col items-center justify-center py-6 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-green-500 hover:text-green-500 text-slate-500' : 'bg-white border-gray-100 hover:border-green-500 text-gray-500'}`}>
-                        <Activity size={24} /> Complete & Free Unit
-                      </button>
                     </div>
+                    <button onClick={handleComplete} className={`w-full flex items-center justify-center py-4 gap-3 border-2 rounded-2xl transition-all font-black uppercase tracking-widest text-[10px] ${darkMode ? 'bg-slate-950 border-slate-800 hover:border-green-500 hover:text-green-500 text-slate-500' : 'bg-white border-gray-100 hover:border-green-500 text-gray-500'}`}>
+                      <CheckCircle2 size={18} /> Complete & Free Unit
+                    </button>
                   </div>
                 )
               ) : (
@@ -244,13 +252,17 @@ export default function GroundDashboard() {
             <>
               <div className="absolute top-4 left-4 z-[1000] pointer-events-none space-y-2">
                 <div className="font-black text-[9px] uppercase tracking-[0.2em] text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/30 backdrop-blur-sm pointer-events-none">
-                  🔴 LIVE ROUTE — {approvedMission.officer_name} → Victim → {approvedMission.hospital_name}
+                  {routeLeg === 'full' && `🔴 LIVE ROUTE — ${approvedMission.officer_name} → Victim → ${approvedMission.hospital_name}`}
+                  {routeLeg === 'sos' && `🔴 SOS ROUTE — ${approvedMission.officer_name} → Victim`}
+                  {routeLeg === 'hospital' && `🔴 HOSPITAL ROUTE — Victim → ${approvedMission.hospital_name}`}
+                  {!routeLeg && '🔴 AWAITING ROUTE UPLINK'}
                 </div>
               </div>
               <GroundRouteMap
                 officerPos={[approvedMission.officer_lat, approvedMission.officer_lon]}
                 victimPos={[approvedMission.victim_lat, approvedMission.victim_lon]}
                 hospitalPos={[approvedMission.hospital_lat, approvedMission.hospital_lon]}
+                routeLeg={routeLeg}
               />
             </>
           ) : (

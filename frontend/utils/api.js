@@ -58,6 +58,16 @@ export async function getOfficers() {
     }
 }
 
+export async function deleteOfficer(officerId) {
+    try {
+        const res = await fetch(`${BASE_URL}/api/officers/${officerId}`, {
+            method: 'DELETE'
+        });
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
 export async function assignOfficer(lat, lon, task_id) {
     // POST requests are not cached, so no need for the timestamp here
     try {

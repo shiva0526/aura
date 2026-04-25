@@ -1,8 +1,25 @@
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle } from 'react-leaflet';
+import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
-export default function RescueMap({ officers = [], hospitals = [] }) {
+function LocationCollector({ onMapClick }) {
+    const map = useMapEvents({
+        click(e) {
+            if (onMapClick) onMapClick(e.latlng);
+        }
+    });
+
+    useEffect(() => {
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+        }, 300);
+    }, [map]);
+
+    return null;
+}
+
+export default function RescueMap({ officers = [], hospitals = [], activeRoute = null, onMapClick }) {
+    const [routeCoords, setRouteCoords] = useState([]);
     useEffect(() => {
         // Fix default icon issue with Leaflet in React
         delete L.Icon.Default.prototype._getIconUrl;
@@ -13,6 +30,42 @@ export default function RescueMap({ officers = [], hospitals = [] }) {
             shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
         });
     }, []);
+
+    useEffect(() => {
+        if (!activeRoute) {
+            setTimeout(() => setRouteCoords([]), 0);
+            return;
+        }
+
+        const fetchRoute = async () => {
+            try {
+                let coords = [];
+                // Segment 1: Officer -> Victim
+                const url1 = `https://router.project-osrm.org/route/v1/driving/${activeRoute.start[1]},${activeRoute.start[0]};${activeRoute.via[1]},${activeRoute.via[0]}?overview=full&geometries=geojson`;
+                const res1 = await fetch(url1);
+                const data1 = await res1.json();
+                if (data1.routes && data1.routes.length > 0) {
+                    const mapped1 = data1.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    coords = [...coords, activeRoute.start, ...mapped1, activeRoute.via];
+                }
+
+                // Segment 2: Victim -> Hospital
+                const url2 = `https://router.project-osrm.org/route/v1/driving/${activeRoute.via[1]},${activeRoute.via[0]};${activeRoute.end[1]},${activeRoute.end[0]}?overview=full&geometries=geojson`;
+                const res2 = await fetch(url2);
+                const data2 = await res2.json();
+                if (data2.routes && data2.routes.length > 0) {
+                    const mapped2 = data2.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    coords = [...coords, activeRoute.via, ...mapped2, activeRoute.end];
+                }
+
+                setRouteCoords(coords);
+            } catch (err) {
+                console.error("OSRM Routing Error:", err);
+            }
+        };
+        fetchRoute();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(activeRoute)]);
 
     const mapCenter = [12.4244, 75.7382];
     const disasterBounds = [
@@ -27,7 +80,8 @@ export default function RescueMap({ officers = [], hospitals = [] }) {
 
     return (
         <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-            <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+            <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%', cursor: onMapClick ? 'crosshair' : 'grab' }}>
+                <LocationCollector onMapClick={onMapClick} />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -46,6 +100,16 @@ export default function RescueMap({ officers = [], hospitals = [] }) {
                         <Popup>{h.name}</Popup>
                     </Marker>
                 ))}
+
+                {/* Turn-by-turn Route */}
+                {routeCoords.length > 0 && (
+                    <Polyline positions={routeCoords} color="#3b82f6" weight={5} opacity={0.8} dashArray="10, 10" />
+                )}
+
+                {/* Dynamic SOS Marker */}
+                {activeRoute && (
+                    <Marker position={activeRoute.via} icon={L.divIcon({ className: 'sos-icon', html: '🚨', iconSize: [24, 24], iconAnchor: [12, 12] })} />
+                )}
 
                 {/* Disaster Bounding Box */}
                 <Rectangle bounds={disasterBounds} pathOptions={disasterZoneOptions} />

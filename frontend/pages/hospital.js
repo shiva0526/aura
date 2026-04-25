@@ -1,15 +1,16 @@
 import Head from 'next/head'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { LayoutDashboard, MessageSquare, Users, Settings, Megaphone, BedDouble, UserCheck, AlertTriangle, Filter } from 'lucide-react'
 import { getFinal, getOracle, getApprovedMission } from '../utils/api'
 
 export default function HospitalDashboard() {
   const [bedInput, setBedInput] = useState('25')
-  const [bedsConfirmed, setBedsConfirmed] = useState(false)
+  const [bedsConfirmed, setBedsConfirmed] = useState(true)
   const [mission, setMission] = useState(null)
   const [oracleData, setOracleData] = useState(null)
   const [approvedMission, setApprovedMission] = useState(null)
-  const [lastApprovedId, setLastApprovedId] = useState(null)
+
+  const lastApprovedId = useRef(null);
 
   // Poll backend for live data
   useEffect(() => {
@@ -27,8 +28,8 @@ export default function HospitalDashboard() {
       if (approved && approved.mission_id) {
         setApprovedMission(approved);
         // If it's a new approved mission, pop up the banner and set initial bed request
-        if (approved.mission_id !== lastApprovedId) {
-          setLastApprovedId(approved.mission_id);
+        if (approved.mission_id !== lastApprovedId.current) {
+          lastApprovedId.current = approved.mission_id;
           setBedsConfirmed(false);
           setBedInput(String(approved.victim_count || 1));
         }
@@ -37,6 +38,7 @@ export default function HospitalDashboard() {
     fetchData()
     const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleConfirmBeds = () => {
@@ -113,7 +115,7 @@ export default function HospitalDashboard() {
         <div className="flex-1 p-8 overflow-y-auto">
 
           {/* Urgent Request Banner */}
-          {!bedsConfirmed && (
+          {(approvedMission || mission) && !bedsConfirmed && (
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-6 text-white flex justify-between items-center mb-8 shadow-xl shadow-blue-500/30 animate-slide-up relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-2xl"></div>
               <div className="flex items-center gap-5 relative z-10">

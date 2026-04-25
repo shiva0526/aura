@@ -77,11 +77,21 @@ class OfficerCreate(BaseModel):
 
 @app.post("/api/officers")
 async def deploy_officer(request: OfficerCreate, db: AsyncSession = Depends(get_db)):
-    # Calculate next ID
+    # Calculate next sequential ID safely analyzing existing IDs securely
     query = select(GroundOfficer)
     result = await db.execute(query)
-    count = len(result.scalars().all())
-    new_id = f"GO-{str(count + 1).zfill(2)}"
+    officers = result.scalars().all()
+    
+    max_num = 0
+    for o in officers:
+        try:
+            num = int(o.id.split('-')[1])
+            if num > max_num:
+                max_num = num
+        except:
+            pass
+            
+    new_id = f"GO-{str(max_num + 1).zfill(2)}"
     
     new_officer = GroundOfficer(
         id=new_id,
@@ -101,6 +111,17 @@ async def get_officers(db: AsyncSession = Depends(get_db)):
     result = await db.execute(query)
     officers = result.scalars().all()
     return [{"id": o.id, "name": o.name, "lat": o.lat, "lon": o.lon, "status": o.status, "current_task_id": o.current_task_id} for o in officers]
+
+@app.delete("/api/officers/{officer_id}")
+async def delete_officer(officer_id: str, db: AsyncSession = Depends(get_db)):
+    query = select(GroundOfficer).where(GroundOfficer.id == officer_id)
+    result = await db.execute(query)
+    officer = result.scalar_one_or_none()
+    if officer:
+        await db.delete(officer)
+        await db.commit()
+        return {"status": "ok"}
+    raise HTTPException(status_code=404, detail="Officer not found")
 
 @app.post("/api/assign")
 async def assign_officer(request: AssignRequest, db: AsyncSession = Depends(get_db)):
