@@ -37,12 +37,19 @@ export default function IgnitionMap({ globalFeatures }) {
                     ISI: globalFeatures.ISI
                 };
 
-                // Hardcoded to low possibility of forest fire
-                const lowProb = Math.floor(Math.random() * 4) + 1; // 1 to 4%
+                // Hardcoded logic to make Madikeri Peak orange (WARNING)
+                let prob = Math.floor(Math.random() * 4) + 1; // 1 to 4%
+                let risk = 'SAFE';
+                
+                if (station.id === 'S1') {
+                    prob = Math.floor(Math.random() * 15) + 40; // 40-54%
+                    risk = 'WARNING';
+                }
+
                 results.push({
                     ...station,
                     localFeatures,
-                    prediction: { ignition_probability: lowProb, risk_level: 'SAFE' }
+                    prediction: { ignition_probability: prob, risk_level: risk }
                 });
             }
             setStationData(results);
@@ -72,6 +79,16 @@ export default function IgnitionMap({ globalFeatures }) {
             className: 'custom-sensor-icon',
             html: `
                 <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
+                    <!-- Pulse Aura -->
+                    <div class="animate-ping" style="
+                        position: absolute;
+                        width: 100%;
+                        height: 100%;
+                        border-radius: 50%;
+                        background-color: ${color};
+                        opacity: 0.3;
+                    "></div>
+                    
                     <!-- Solid Center -->
                     <div style="
                         width: 16px; 
@@ -79,6 +96,7 @@ export default function IgnitionMap({ globalFeatures }) {
                         background-color: ${bg}; 
                         border: 2px solid white; 
                         border-radius: 50%;
+                        box-shadow: 0 0 15px ${color};
                         z-index: 10;
                     "></div>
                 </div>
@@ -104,7 +122,9 @@ export default function IgnitionMap({ globalFeatures }) {
                     >
                         <Popup>
                             <strong>{station.name}</strong><br/>
-                            <span style={{color: '#22c55e', fontWeight: 'bold'}}>Low possibility of forest fire</span><br/>
+                            <span style={{color: getRiskBg(station.prediction.risk_level), fontWeight: 'bold'}}>
+                                {station.prediction.risk_level === 'WARNING' ? 'Moderate possibility of forest fire' : 'Low possibility of forest fire'}
+                            </span><br/>
                             Probability: {Math.round(station.prediction.ignition_probability)}%<br/>
                             <hr style={{margin: '5px 0'}}/>
                             <small>Local Temp: {station.localFeatures.temp}°C</small><br/>
