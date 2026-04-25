@@ -91,8 +91,8 @@ export default function RescueMap({ officers = [], hospitals = [], activeRoute =
 
     const mapCenter = [12.4244, 75.7382];
     const disasterBounds = [
-        [12.4180, 75.7320],
-        [12.4300, 75.7440],
+        [12.4120, 75.7280],
+        [12.4360, 75.7520],
     ];
 
     const disasterZoneOptions = { color: 'red', fillColor: '#ff0000', fillOpacity: 0.2 };

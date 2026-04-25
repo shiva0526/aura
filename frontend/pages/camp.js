@@ -249,27 +249,6 @@ export default function CampDashboard() {
 
         <div className="flex-1 p-6 flex flex-col gap-6 overflow-hidden h-full">
 
-          {/* System Status / Stats - Horizontal Top Bar */}
-          <div className={`rounded-2xl border flex items-center justify-between transition-all duration-500 shrink-0 px-8 py-3 ${cardClasses}`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-2.5 rounded-lg ${darkMode ? 'bg-[#151b2b]' : 'bg-blue-50'} border ${darkMode ? 'border-slate-800' : 'border-blue-200'}`}>
-                <Activity size={18} className="text-blue-500" />
-              </div>
-              <h2 className={`font-black uppercase tracking-widest text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>Operational Telemetry</h2>
-            </div>
-            <div className={`flex gap-6 items-center ${darkMode ? 'bg-black/20' : 'bg-blue-50'} px-5 py-2.5 rounded-xl border ${darkMode ? 'border-white/5' : 'border-blue-100'}`}>
-              <div className="flex items-center gap-3">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-gray-500'}`}>Units Available</span>
-                <span className={`text-xl font-black drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] ${darkMode ? 'text-white' : 'text-gray-900'}`}>{officers.filter(o => o.status === 'Active' || o.status === 'available').length}</span>
-              </div>
-              <div className={`w-px h-5 ${darkMode ? 'bg-slate-800' : 'bg-gray-300'}`}></div>
-              <div className="flex items-center gap-3">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-green-500/50' : 'text-green-600/60'}`}>GPS Base Confidence</span>
-                <span className="text-xl font-black drop-shadow-[0_0_15px_rgba(74,222,128,0.4)]">99.8%</span>
-              </div>
-            </div>
-          </div>
-
           <div className="flex-1 grid grid-cols-12 gap-8 min-h-0 pb-10">
 
             {/* Left Column - Large Map */}
